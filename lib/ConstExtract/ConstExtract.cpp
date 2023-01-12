@@ -120,7 +120,7 @@ parseProtocolListFromFile(StringRef protocolListFilePath,
   return true;
 }
 
-static std::shared_ptr<CompileTimeValue> extractCompileTimeValue(Expr *expr) {
+static llvm::Optional<std::string> extractRawLiteral(Expr *expr) {
   if (expr) {
     switch (expr->getKind()) {
     case ExprKind::BooleanLiteral:
@@ -131,7 +131,7 @@ static std::shared_ptr<CompileTimeValue> extractCompileTimeValue(Expr *expr) {
       llvm::raw_string_ostream OutputStream(literalOutput);
       expr->printConstExprValue(&OutputStream, nullptr);
       if (!literalOutput.empty()) {
-        return std::make_shared<RawLiteralValue>(literalOutput);
+        return literalOutput;
       }
       break;
     }
@@ -141,7 +141,30 @@ static std::shared_ptr<CompileTimeValue> extractCompileTimeValue(Expr *expr) {
       std::string literalOutput;
       llvm::raw_string_ostream OutputStream(literalOutput);
       OutputStream << stringLiteralExpression->getValue();
-      return std::make_shared<RawLiteralValue>(literalOutput);
+      return literalOutput;
+    }
+
+    default:
+      break;
+    }
+  }
+  return None;
+}
+
+static std::shared_ptr<CompileTimeValue> extractCompileTimeValue(Expr *expr) {
+  if (expr) {
+    switch (expr->getKind()) {
+    case ExprKind::BooleanLiteral:
+    case ExprKind::FloatLiteral:
+    case ExprKind::IntegerLiteral:
+    case ExprKind::NilLiteral:
+    case ExprKind::StringLiteral: {
+      auto rawLiteral = extractRawLiteral(expr);
+      if (rawLiteral.hasValue()) {
+        return std::make_shared<RawLiteralValue>(rawLiteral.value());
+      }
+
+      break;
     }
 
     case ExprKind::Array: {
@@ -287,6 +310,42 @@ extractTypePropertyInfo(VarDecl *propertyDecl) {
   return {propertyDecl, std::make_shared<RuntimeValue>()};
 }
 
+llvm::Optional<std::vector<EnumElementDeclValue>>
+extractEnumCases(NominalTypeDecl *Decl) {
+  if (Decl->getKind() == DeclKind::Enum) {
+    std::vector<EnumElementDeclValue> Elements;
+    for (EnumCaseDecl *ECD : cast<EnumDecl>(Decl)->getAllCases()) {
+      for (EnumElementDecl *EED : ECD->getElements()) {
+        std::string Name = EED->getNameStr().str();
+        llvm::Optional<std::string> RawValue =
+            extractRawLiteral(EED->getRawValueExpr());
+
+        std::vector<EnumElementParameterValue> Parameters;
+        if (const ParameterList *Params = EED->getParameterList()) {
+          for (const ParamDecl *Parameter : Params->getArray()) {
+            Optional<std::string> Label =
+                Parameter->getParameterName().empty()
+                    ? Optional<std::string>()
+                    : Optional<std::string>(
+                          Parameter->getParameterName().str().str());
+
+            Parameters.push_back({Label, Parameter->getType()});
+          }
+        }
+
+        if (Parameters.empty()) {
+          Elements.push_back({Name, RawValue, None});
+        } else {
+          Elements.push_back({Name, RawValue, Parameters});
+        }
+      }
+    }
+    return Elements;
+  }
+
+  return None;
+}
+
 ConstValueTypeInfo
 ConstantValueInfoRequest::evaluate(Evaluator &Evaluator,
                                    NominalTypeDecl *Decl) const {
@@ -317,7 +376,7 @@ ConstantValueInfoRequest::evaluate(Evaluator &Evaluator,
     }
   }
 
-  return ConstValueTypeInfo{Decl, Properties};
+  return ConstValueTypeInfo{Decl, Properties, extractEnumCases(Decl)};
 }
 
 std::vector<ConstValueTypeInfo>
@@ -489,6 +548,38 @@ void writeAttributes(
   });
 }
 
+void writeEnumCases(
+    llvm::json::OStream &JSON,
+    llvm::Optional<std::vector<EnumElementDeclValue>> EnumElements) {
+  if (!EnumElements.hasValue()) {
+    return;
+  }
+
+  JSON.attributeArray("cases", [&] {
+    for (const auto &Case : EnumElements.value()) {
+      JSON.object([&] {
+        JSON.attribute("name", Case.Name);
+        if (Case.RawValue.hasValue()) {
+          JSON.attribute("rawValue", Case.RawValue.value());
+        }
+        if (Case.Parameters.hasValue()) {
+          JSON.attributeArray("parameters", [&] {
+            for (const auto &Parameter : Case.Parameters.value()) {
+              JSON.object([&] {
+                if (auto Label = Parameter.Label) {
+                  JSON.attribute("label", Label);
+                }
+                JSON.attribute("type",
+                               toFullyQualifiedTypeNameString(Parameter.Type));
+              });
+            }
+          });
+        }
+      });
+    }
+  });
+}
+
 bool writeAsJSONToFile(const std::vector<ConstValueTypeInfo> &ConstValueInfos,
                        llvm::raw_fd_ostream &OS) {
   llvm::json::OStream JSON(OS, 2);
@@ -518,6 +609,7 @@ bool writeAsJSONToFile(const std::vector<ConstValueTypeInfo> &ConstValueInfos,
             });
           }
         });
+        writeEnumCases(JSON, TypeInfo.EnumElements);
       });
     }
   });

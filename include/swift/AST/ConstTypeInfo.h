@@ -175,6 +175,19 @@ struct CustomAttrValue {
   std::vector<FunctionParameter> Parameters;
 };
 
+/// A representation of a single associated value for an enumeration case.
+struct EnumElementParameterValue {
+  Optional<std::string> Label;
+  swift::Type Type;
+};
+
+/// A representation of a single enumeration case.
+struct EnumElementDeclValue {
+  std::string Name;
+  llvm::Optional<std::string> RawValue;
+  llvm::Optional<std::vector<EnumElementParameterValue>> Parameters;
+};
+
 struct ConstValueTypePropertyInfo {
   swift::VarDecl *VarDecl;
   std::shared_ptr<CompileTimeValue> Value;
@@ -194,6 +207,7 @@ struct ConstValueTypePropertyInfo {
 struct ConstValueTypeInfo {
   swift::NominalTypeDecl *TypeDecl;
   std::vector<ConstValueTypePropertyInfo> Properties;
+  llvm::Optional<std::vector<EnumElementDeclValue>> EnumElements;
 };
 } // namespace swift
 #endif
