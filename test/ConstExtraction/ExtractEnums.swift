@@ -17,8 +17,15 @@ public enum StringEnum: String, MyProto {
 }
 
 public enum AssociatedEnums: MyProto {
-    case first(title: String)
-    case second(Int)
+    case strings(title: String, subtitle: String)
+    case ints(Int)
+}
+
+public struct Enums: MyProto {
+  let enum1 = SimpleEnum.hello
+  var enum2: StringEnum { .third }
+  let enum3 = AssociatedEnums.strings(title: "the_title", subtitle: "the_subtitle")
+  var enum4: AssociatedEnums { return .ints(42) }
 }
 
 // CHECK: [
@@ -82,21 +89,103 @@ public enum AssociatedEnums: MyProto {
 // CHECK-NEXT:    "properties": [],
 // CHECK-NEXT:    "cases": [
 // CHECK-NEXT:      {
-// CHECK-NEXT:        "name": "first",
+// CHECK-NEXT:        "name": "strings",
 // CHECK-NEXT:        "parameters": [
 // CHECK-NEXT:          {
 // CHECK-NEXT:            "label": "title",
+// CHECK-NEXT:            "type": "Swift.String"
+// CHECK-NEXT:          },
+// CHECK-NEXT:          {
+// CHECK-NEXT:            "label": "subtitle",
 // CHECK-NEXT:            "type": "Swift.String"
 // CHECK-NEXT:          }
 // CHECK-NEXT:        ]
 // CHECK-NEXT:      },
 // CHECK-NEXT:      {
-// CHECK-NEXT:        "name": "second",
+// CHECK-NEXT:        "name": "ints",
 // CHECK-NEXT:        "parameters": [
 // CHECK-NEXT:          {
 // CHECK-NEXT:            "type": "Swift.Int"
 // CHECK-NEXT:          }
 // CHECK-NEXT:        ]
+// CHECK-NEXT:      }
+// CHECK-NEXT:    ]
+// CHECK-NEXT:  },
+// CHECK-NEXT:  {
+// CHECK-NEXT:    "typeName": "ExtractEnums.Enums",
+// CHECK-NEXT:    "kind": "struct",
+// CHECK-NEXT:    "file": "{{.*}}test{{/|\\\\}}ConstExtraction{{/|\\\\}}ExtractEnums.swift",
+// CHECK-NEXT:    "line": 24,
+// CHECK-NEXT:    "properties": [
+// CHECK-NEXT:      {
+// CHECK-NEXT:        "label": "enum1",
+// CHECK-NEXT:        "type": "ExtractEnums.SimpleEnum",
+// CHECK-NEXT:        "isStatic": "false",
+// CHECK-NEXT:        "isComputed": "false",
+// CHECK-NEXT:        "file": "{{.*}}test{{/|\\\\}}ConstExtraction{{/|\\\\}}ExtractEnums.swift",
+// CHECK-NEXT:        "line": 25,
+// CHECK-NEXT:        "valueKind": "Enum",
+// CHECK-NEXT:        "value": {
+// CHECK-NEXT:          "name": "hello"
+// CHECK-NEXT:        }
+// CHECK-NEXT:      },
+// CHECK-NEXT:      {
+// CHECK-NEXT:        "label": "enum3",
+// CHECK-NEXT:        "type": "ExtractEnums.AssociatedEnums",
+// CHECK-NEXT:        "isStatic": "false",
+// CHECK-NEXT:        "isComputed": "false",
+// CHECK-NEXT:        "file": "{{.*}}test{{/|\\\\}}ConstExtraction{{/|\\\\}}ExtractEnums.swift",
+// CHECK-NEXT:        "line": 27,
+// CHECK-NEXT:        "valueKind": "Enum",
+// CHECK-NEXT:        "value": {
+// CHECK-NEXT:          "name": "strings",
+// CHECK-NEXT:          "arguments": [
+// CHECK-NEXT:            {
+// CHECK-NEXT:              "label": "title",
+// CHECK-NEXT:              "type": "Swift.String",
+// CHECK-NEXT:              "valueKind": "RawLiteral",
+// CHECK-NEXT:              "value": "the_title"
+// CHECK-NEXT:            },
+// CHECK-NEXT:            {
+// CHECK-NEXT:              "label": "subtitle",
+// CHECK-NEXT:              "type": "Swift.String",
+// CHECK-NEXT:              "valueKind": "RawLiteral",
+// CHECK-NEXT:              "value": "the_subtitle"
+// CHECK-NEXT:            }
+// CHECK-NEXT:          ]
+// CHECK-NEXT:        }
+// CHECK-NEXT:      },
+// CHECK-NEXT:      {
+// CHECK-NEXT:        "label": "enum2",
+// CHECK-NEXT:        "type": "ExtractEnums.StringEnum",
+// CHECK-NEXT:        "isStatic": "false",
+// CHECK-NEXT:        "isComputed": "true",
+// CHECK-NEXT:        "file": "{{.*}}test{{/|\\\\}}ConstExtraction{{/|\\\\}}ExtractEnums.swift",
+// CHECK-NEXT:        "line": 26,
+// CHECK-NEXT:        "valueKind": "Enum",
+// CHECK-NEXT:        "value": {
+// CHECK-NEXT:          "name": "third"
+// CHECK-NEXT:        }
+// CHECK-NEXT:      },
+// CHECK-NEXT:      {
+// CHECK-NEXT:        "label": "enum4",
+// CHECK-NEXT:        "type": "ExtractEnums.AssociatedEnums",
+// CHECK-NEXT:        "isStatic": "false",
+// CHECK-NEXT:        "isComputed": "true",
+// CHECK-NEXT:        "file": "{{.*}}test{{/|\\\\}}ConstExtraction{{/|\\\\}}ExtractEnums.swift",
+// CHECK-NEXT:        "line": 28,
+// CHECK-NEXT:        "valueKind": "Enum",
+// CHECK-NEXT:        "value": {
+// CHECK-NEXT:          "name": "ints",
+// CHECK-NEXT:          "arguments": [
+// CHECK-NEXT:            {
+// CHECK-NEXT:              "label": "",
+// CHECK-NEXT:              "type": "Swift.Int",
+// CHECK-NEXT:              "valueKind": "RawLiteral",
+// CHECK-NEXT:              "value": "42"
+// CHECK-NEXT:            }
+// CHECK-NEXT:          ]
+// CHECK-NEXT:        }
 // CHECK-NEXT:      }
 // CHECK-NEXT:    ]
 // CHECK-NEXT:  }
