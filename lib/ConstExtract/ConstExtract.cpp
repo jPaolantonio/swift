@@ -381,6 +381,29 @@ static std::shared_ptr<CompileTimeValue> extractCompileTimeValue(Expr *expr) {
       return extractCompileTimeValue(injectIntoOptionalExpr->getSubExpr());
     }
 
+    case ExprKind::KeyPath: {
+      auto keyPathExpr = cast<KeyPathExpr>(expr);
+      auto getParsedRoot = keyPathExpr->getParsedRoot();
+      auto components = keyPathExpr->getComponents();
+//      auto getRootType = keyPathExpr->getRootType();
+//      auto getValueType = keyPathExpr->getValueType();
+//      auto rt = toFullyQualifiedTypeNameString(getRootType);
+//      auto vt = toFullyQualifiedTypeNameString(getValueType);
+
+      for (auto Component: keyPathExpr->getComponents()) {
+        auto t = Component.getComponentType();
+        auto tt = toFullyQualifiedTypeNameString(t);
+
+      }
+      return std::make_shared<KeyPathValue>("test");
+
+//      switch (getParsedRoot->getKind()) {
+//      case ExprKind::UnresolvedDot: {
+//        auto unresolvedDotExpr = cast<UnresolvedDotExpr>(getParsedRoot);
+//
+//        break;
+      }
+
     default: {
       break;
     }
@@ -700,6 +723,12 @@ void writeValue(llvm::json::OStream &JSON,
       JSON.attribute("mangledName",
                      toMangledTypeNameString(type));
     });
+    break;
+  }
+
+  case CompileTimeValue::ValueKind::KeyPath: {
+    JSON.attribute("valueKind", "KeyPath");
+    JSON.attribute("value", cast<KeyPathValue>(value)->getValue());
     break;
   }
 

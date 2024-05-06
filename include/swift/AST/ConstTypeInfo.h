@@ -37,6 +37,7 @@ public:
     Tuple,
     Enum,
     Type,
+    KeyPath,
     Runtime
   };
 
@@ -197,6 +198,23 @@ public:
 
 private:
   swift::Type Type;
+};
+
+/// A string representation of a raw literal value,
+/// for example an integer or string or float literal.
+class KeyPathValue : public CompileTimeValue {
+public:
+  KeyPathValue(std::string Value)
+  : CompileTimeValue(ValueKind::KeyPath), Value(Value) {}
+
+  std::string getValue() const { return Value; }
+
+  static bool classof(const CompileTimeValue *T) {
+    return T->getKind() == ValueKind::KeyPath;
+  }
+
+private:
+  std::string Value;
 };
 
 /// A representation of an arbitrary value that does not fall under
