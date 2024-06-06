@@ -37,6 +37,7 @@ public:
     Tuple,
     Enum,
     Type,
+    StaticCall,
     Runtime
   };
 
@@ -181,6 +182,28 @@ public:
 
 private:
   std::string Identifier;
+  std::optional<std::vector<FunctionParameter>> Parameters;
+};
+
+/// An static func value representation
+class StaticCallValue : public CompileTimeValue {
+public:
+  StaticCallValue(swift::Type Type,
+                  std::optional<std::vector<FunctionParameter>> Parameters)
+      : CompileTimeValue(ValueKind::StaticCall), Type(Type),
+        Parameters(Parameters) {}
+
+  swift::Type getType() const { return Type; }
+  std::optional<std::vector<FunctionParameter>> getParameters() const {
+    return Parameters;
+  }
+
+  static bool classof(const CompileTimeValue *T) {
+    return T->getKind() == ValueKind::StaticCall;
+  }
+
+private:
+  swift::Type Type;
   std::optional<std::vector<FunctionParameter>> Parameters;
 };
 

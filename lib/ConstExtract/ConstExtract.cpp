@@ -303,6 +303,8 @@ static std::shared_ptr<CompileTimeValue> extractCompileTimeValue(Expr *expr) {
           std::vector<FunctionParameter> parameters =
               extractFunctionArguments(callExpr->getArgs());
           return std::make_shared<EnumValue>(caseName, parameters);
+          // return std::make_shared<StaticCallValue>(caseName, parameters);
+          // return std::make_shared<RuntimeValue>();
         }
       }
 
@@ -320,6 +322,12 @@ static std::shared_ptr<CompileTimeValue> extractCompileTimeValue(Expr *expr) {
       }
 
       break;
+    }
+
+    case ExprKind::MemberRef: {
+      auto memberRefExpr = cast<MemberRefExpr>(expr);
+      auto type = memberRefExpr->getType();
+      return std::make_shared<StaticCallValue>(type, std::nullopt);
     }
 
     case ExprKind::Erasure: {
@@ -386,6 +394,10 @@ static std::shared_ptr<CompileTimeValue> extractCompileTimeValue(Expr *expr) {
     }
     }
   }
+
+  //  auto kind = expr->getKind();
+  //  auto kindName = Expr::getKindName(kind);
+  //  return std::make_shared<RawLiteralValue>(kindName.str());
 
   return std::make_shared<RuntimeValue>();
 }
@@ -671,6 +683,29 @@ void writeValue(llvm::json::OStream &JSON,
       JSON.attribute("name", enumValue->getIdentifier());
       if (enumValue->getParameters().has_value()) {
         auto params = enumValue->getParameters().value();
+        JSON.attributeArray("arguments", [&] {
+          for (auto FP : params) {
+            JSON.object([&] {
+              JSON.attribute("label", FP.Label);
+              JSON.attribute("type", toFullyQualifiedTypeNameString(FP.Type));
+              writeValue(JSON, FP.Value);
+            });
+          }
+        });
+      }
+    });
+    break;
+  }
+
+  case CompileTimeValue::ValueKind::StaticCall: {
+    auto staticCallValue = cast<StaticCallValue>(value);
+    JSON.attribute("valueKind", "StaticCall");
+    JSON.attributeObject("value", [&]() {
+      Type type = staticCallValue->getType();
+      JSON.attribute("type", toFullyQualifiedTypeNameString(type));
+      JSON.attribute("mangledName", toMangledTypeNameString(type));
+      if (staticCallValue->getParameters().has_value()) {
+        auto params = staticCallValue->getParameters().value();
         JSON.attributeArray("arguments", [&] {
           for (auto FP : params) {
             JSON.object([&] {
