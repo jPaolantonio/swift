@@ -458,6 +458,18 @@ static std::shared_ptr<CompileTimeValue> extractCompileTimeValue(Expr *expr) {
         return std::make_shared<MemberReferenceValue>(
             baseTypeExpr->getInstanceType(), label.str());
       }
+
+
+    if (isa<MemberRefExpr>(memberExpr->getBase())) {
+        auto baseTypeExpr = cast<MemberRefExpr>(memberExpr->getBase());
+        return extractCompileTimeValue(baseTypeExpr);
+    }
+
+//      auto base = memberExpr->getBase();
+//      auto kn = Expr::getKindName(base->getKind());
+//
+//        return std::make_shared<RawLiteralValue>(kn.str());
+
       break;
     }
 
@@ -487,12 +499,14 @@ static std::shared_ptr<CompileTimeValue> extractCompileTimeValue(Expr *expr) {
       }
       break;
     }
+
     default: {
       break;
     }
     }
   }
 
+//  return std::make_shared<RawLiteralValue>(Expr::getKindName(expr->getKind());
   return std::make_shared<RuntimeValue>();
 }
 
